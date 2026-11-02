@@ -13,8 +13,14 @@ user-invocable: true
 1. **論文データの取得**
    - 以下のシェルコマンドを実行して、最新論文データのJSONファイル `temp_papers.json` を生成してください。
      ```bash
-     python fetch_papers.py > temp_papers.json
+     python3 -m pip install -r requirements.txt
+     python3 fetch_papers.py > temp_papers.json
      ```
+   - 終了コードを確認してください。
+     - `0`: 全JELコードの取得に成功（該当論文が0件の場合を含む）
+     - `2`: 一部のJELコードで失敗（`failed_jel_codes` を参照）。失敗したコードのみ WebSearch/WebFetch で補ってください。
+     - `1`: 全JELコードで失敗。WebSearch/WebFetch で代替収集してください。
+   - 代替収集した論文の被引用数は「取得不可」とし、レポート冒頭に取得方法を注記してください。
 
 2. **データの解析と要約**
    - `temp_papers.json` を読み込み、各論文の内容を分析してください。
@@ -46,6 +52,7 @@ user-invocable: true
 - **著者:** [著者名]
 - **掲載誌/会議:** [Journal/Venue] ([出版年/月])
 - **URL:** [リンク]
+- **Google Scholar:** [`scholar_url` のリンク。代替収集の場合は `https://scholar.google.com/scholar?q=` にURLエンコードした論文タイトルを付けて作成]
 - **被引用数:** [Citation Count]
 - **研究の背景・目的:**
   [1-2文で解説]
