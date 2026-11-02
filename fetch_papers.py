@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import sys
 import time
 from datetime import datetime, timedelta
@@ -20,11 +21,35 @@ JEL_QUERIES = {
 }
 
 # 対象ジャーナルの絞り込み（空リスト [] で全ジャーナル対象）
+# 会場名はSemantic Scholar上の表記とほぼ完全一致が必要（"The"の有無は吸収される）。
 TARGET_JOURNALS = [
-    "Journal of Econometrics",
-    "Econometrica",
-    "Review of Economic Studies",
+    # 5大誌
     "American Economic Review",
+    "Econometrica",
+    "Journal of Political Economy",
+    "Quarterly Journal of Economics",
+    "Review of Economic Studies",
+    # 同等水準の国際誌
+    "Journal of Econometrics",
+    "Review of Economics and Statistics",
+    "Journal of Monetary Economics",
+    "Journal of Economic Theory",
+    "Journal of Finance",
+    "Review of Financial Studies",
+    "Journal of Financial Economics",
+    "Economic Journal",
+    "International Economic Review",
+    "Journal of Applied Econometrics",
+    "Journal of Business & Economic Statistics",
+    "Journal of International Economics",
+    "Journal of Public Economics",
+    "Journal of Development Economics",
+    "Theoretical Economics",
+    "Quantitative Economics",
+    "American Economic Journal: Macroeconomics",
+    "American Economic Journal: Applied Economics",
+    "Journal of Economic Literature",
+    "Journal of Economic Perspectives",
 ]
 
 # 過去何日分の論文を対象にするか（掲載日の登録が遅れる場合があるため月より長めに取る）
@@ -36,8 +61,10 @@ LIMIT_PER_JEL = 5
 MIN_REQUEST_INTERVAL = 1.1
 _last_request_at = 0.0
 
-MAX_RETRIES = 3
+# 429は間隔を空けても約4割で発生する（サーバー側の混雑）ため、再試行回数を多めに取る。
+MAX_RETRIES = 6
 BACKOFF_SECONDS = 2
+BACKOFF_MAX_SECONDS = 15
 REQUEST_TIMEOUT = 30
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
@@ -76,7 +103,9 @@ def get_with_retry(params):
         if response.status_code not in RETRYABLE_STATUS or attempt == MAX_RETRIES:
             response.raise_for_status()
             return response
-        time.sleep(BACKOFF_SECONDS * 2**attempt)
+        # 指数バックオフ（上限あり）+ ジッター
+        delay = min(BACKOFF_SECONDS * 2**attempt, BACKOFF_MAX_SECONDS)
+        time.sleep(delay * random.uniform(0.5, 1.5))
 
 
 def fetch_semantic_scholar_papers(jel_code, limit=LIMIT_PER_JEL):
