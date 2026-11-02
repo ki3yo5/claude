@@ -16,6 +16,7 @@ user-invocable: true
      python3 -m pip install -r requirements.txt
      python3 fetch_papers.py > temp_papers.json
      ```
+   - APIキーは環境変数 `SEMANTIC_SCHOLAR_API_KEY` から読み込まれます（コードやリポジトリには書かないこと）。レート制限は全エンドポイント合計で1リクエスト/秒で、スクリプト側で自動的に間隔を空けます。
    - 終了コードを確認してください。
      - `0`: 全JELコードの取得に成功（該当論文が0件の場合を含む）
      - `2`: 一部のJELコードで失敗（`failed_jel_codes` を参照）。失敗したコードのみ WebSearch/WebFetch で補ってください。

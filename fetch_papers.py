@@ -31,6 +31,11 @@ TARGET_JOURNALS = [
 LOOKBACK_DAYS = 90
 LIMIT_PER_JEL = 5
 
+# Semantic Scholar APIキーのレート制限: 全エンドポイント合計で 1リクエスト/秒。
+# 余裕を持たせ、リトライを含む全リクエストの間隔をこの秒数以上に保つ。
+MIN_REQUEST_INTERVAL = 1.1
+_last_request_at = 0.0
+
 MAX_RETRIES = 3
 BACKOFF_SECONDS = 2
 REQUEST_TIMEOUT = 30
@@ -52,9 +57,19 @@ def build_headers():
     return headers
 
 
+def throttle():
+    """直前のリクエストから MIN_REQUEST_INTERVAL 秒が経つまで待つ。"""
+    global _last_request_at
+    wait = MIN_REQUEST_INTERVAL - (time.monotonic() - _last_request_at)
+    if wait > 0:
+        time.sleep(wait)
+    _last_request_at = time.monotonic()
+
+
 def get_with_retry(params):
     """429と5xxのみ指数バックオフで再試行する。403などの遮断はそのまま例外を送出する。"""
     for attempt in range(MAX_RETRIES + 1):
+        throttle()
         response = requests.get(
             SEARCH_URL, params=params, headers=build_headers(), timeout=REQUEST_TIMEOUT
         )
@@ -115,8 +130,6 @@ def main():
                     "scholar_url": scholar_url(title),
                     "abstract": p.get("abstract") or "No abstract available.",
                 }
-        # APIレート制限対策（1.5秒待機）
-        time.sleep(1.5)
 
     output = {
         "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
